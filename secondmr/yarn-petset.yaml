@@ -1,0 +1,57 @@
+# A headless service to create DNS records
+apiVersion: v1
+kind: Service
+metadata:
+  name: mr2
+  namespace: bigdata
+  labels:
+    app: mr2
+spec:
+  ports:
+  - port: 80
+    name: mr2
+  # *.nginx.default.svc.cluster.local
+  clusterIP: None
+  selector:
+    app: mr2
+---
+apiVersion: apps/v1alpha1
+kind: PetSet
+metadata:
+  name: mr2
+spec:
+  serviceName: "mr2"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: mr2
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: mr2
+        image: 10.110.17.138:5000/wangdk/bigdata:v0.6
+        imagePullPolicy: Always
+        command:
+           - /usr/local/bin/start.sh
+        securityContext:
+          privileged: true
+        env:
+        - name: RESOURCEMANAGE_HOSTNAME
+          value: mr2-0.mr2.bigdata.svc.iopk8s.com
+        - name: NODE_ROLE
+          value: yarn
+        - name: NAMENODE_HOSTNAME
+          value: master.iop.com
+        - name: HDFSINFO
+          valueFrom:
+            configMapKeyRef:
+              name: hdfsinfo2
+              key: hdfsinfo
+        - name: SLAVES
+          valueFrom:
+            configMapKeyRef:
+              name: hdfsinfo2
+              key: yarnslaves	
